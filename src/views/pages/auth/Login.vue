@@ -1,10 +1,28 @@
 <script setup>
+import { login } from '@/api/index'; // ← 這是你集中管理API的檔案
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-const email = ref('');
+const router = useRouter();
+const empId = ref('');         // 假設用 email/員工編號登入，自行選用
 const password = ref('');
-const checked = ref(false);
+const checked = ref(false);    // "Remember me" 暫時沒用，先保留
+const errMsg = ref('');        // 顯示錯誤訊息
+
+async function handleLogIn() {
+    errMsg.value = '';
+    try {
+        const res = await login(empId.value, password.value);
+        if (res.success) {
+            router.push('/dashboard');   // 登入成功，導回首頁或你指定的主畫面
+        } else {
+            errMsg.value = res.errMsg || '登入失敗，請確認帳號密碼';
+        }
+    } catch (e) {
+        errMsg.value = '伺服器錯誤，請稍後再試';
+    }
+}
 </script>
 
 <template>
@@ -36,8 +54,8 @@ const checked = ref(false);
                     </div>
 
                     <div>
-                        <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                        <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" v-model="email" />
+                        <label for="empId" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
+                        <InputText id="empId" type="text" placeholder="EmployeeID" class="w-full md:w-[30rem] mb-8" v-model="empId" />
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
@@ -49,7 +67,8 @@ const checked = ref(false);
                             </div>
                             <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                         </div>
-                        <Button label="Sign In" class="w-full" as="router-link" to="/"></Button>
+                        <Button label="Sign In" class="w-full" @click="handleLogIn"></Button>
+                        <div v-if="errMsg" class="mt-4 text-red-500 text-center">{{ errMsg }}</div> 
                     </div>
                 </div>
             </div>

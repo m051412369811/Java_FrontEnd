@@ -1,3 +1,4 @@
+import { userInfo } from '@/api';
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
@@ -9,7 +10,7 @@ const router = createRouter({
             component: AppLayout,
             children: [
                 {
-                    path: '/',
+                    path: '/dashboard',
                     name: 'dashboard',
                     component: () => import('@/views/Dashboard.vue')
                 },
@@ -133,6 +134,27 @@ const router = createRouter({
             component: () => import('@/views/pages/auth/Error.vue')
         }
     ]
+});
+
+// 全局前置守衛
+router.beforeEach(async (to, from, next) => {
+    const publicPages = ['/auth/login', '/auth/error', '/auth/access', '/pages/notfound'];
+    const authRequired = !publicPages.includes(to.path);
+
+    if (!authRequired) {
+        return next();
+    }
+
+    try {
+        const res = await userInfo();
+        if (res.success) {
+            next();
+        } else {
+            next({ name: 'login' });
+        }
+    } catch (e) {
+        next({ name: 'login' });
+    }
 });
 
 export default router;
