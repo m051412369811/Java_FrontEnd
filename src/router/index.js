@@ -16,7 +16,7 @@ const router = createRouter({
                 },
                 {
                     path: '/uikit/formlayout',
-                    name: 'formlayout',
+                    name: 'ormlayout',
                     component: () => import('@/views/uikit/FormLayout.vue')
                 },
                 {
@@ -99,6 +99,11 @@ const router = createRouter({
                     path: '/pages/crud',
                     name: 'crud',
                     component: () => import('@/views/pages/Crud.vue')
+                },
+                {
+                    path: '/pages/leaverequest',
+                    name: 'leaverequest',
+                    component: () => import('@/views/pages/ApplyLeaveRequest.vue')
                 },
                 {
                     path: '/documentation',

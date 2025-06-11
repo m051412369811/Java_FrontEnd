@@ -65,6 +65,11 @@ const model = ref([
                 to: '/pages/crud'
             },
             {
+                label: '請假申請/查詢',
+                icon: 'pi pi-fw pi-pencil',
+                to: '/pages/leaverequest'
+            },
+            {
                 label: 'Not Found',
                 icon: 'pi pi-fw pi-exclamation-circle',
                 to: '/pages/notfound'
