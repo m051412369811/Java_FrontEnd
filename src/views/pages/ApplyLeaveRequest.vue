@@ -7,15 +7,10 @@ import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 
-
-
-onMounted(() => {
+onMounted(async () => {
     ProductService.getProducts().then((data) => (products.value = data));
-    
-    // LeaveApplicationService.getLeaveTypes().then((types) => {
-    //     leaveTypes.value = types;
-    // });
-
+    //載入員工的請假申請列表
+    leaveList.value = await LeaveApplicationService.getLeaveSummary();
 });
 
 const toast = useToast();
@@ -26,23 +21,23 @@ const deleteProductDialog = ref(false);
 const deleteProductsDialog = ref(false);
 const product = ref({});
 const selectedProducts = ref();
-const leaveStart = ref(null);
-const leaveEnd = ref(null);
 const filters = ref({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
 const leaveTypes = ref([]);
 const loadingLeaveTypes = ref(false);
 const submitting = ref(false);
+const leaveList = ref([]);
 
 // 表單資料
 const form = ref({
-  leaveTypeId: null,
-  leaveDay: 0,
-  leaveStart: null,
-  leaveEnd: null,
-  statusId: 3
-})
+    leaveTypeId: null,
+    description: null,
+    leaveDay: 0,
+    leaveStart: null,
+    leaveEnd: null,
+    statusId: 3
+});
 const submitted = ref(false);
 
 // 當 Dialog 打開時 (值從 false 變為 true)，才去載入假別資料
@@ -98,26 +93,26 @@ const totalLeaveDays = computed(() => {
         current.setDate(current.getDate() + 1);
     }
     // 偵錯日誌 (2)：看看最後計算出的結果是什麼
-            console.log('計算出的最終天數:', count);
-            console.log('--- 計算結束 ---');
+    console.log('計算出的最終天數:', count);
+    console.log('--- 計算結束 ---');
     return count;
 });
 
 // 載入請假類型
 const fetchLeaveTypes = async () => {
-  loadingLeaveTypes.value = true
-  try {
-    leaveTypes.value = await LeaveApplicationService.getLeaveTypes()
-  } catch (err) {
-    console.error('❌ 載入假別失敗:', err.message)
-  } finally {
-    loadingLeaveTypes.value = false
-  }
-}
+    loadingLeaveTypes.value = true;
+    try {
+        leaveTypes.value = await LeaveApplicationService.getLeaveTypes();
+    } catch (err) {
+        console.error('❌ 載入假別失敗:', err.message);
+    } finally {
+        loadingLeaveTypes.value = false;
+    }
+};
 
 const submitLeave = async () => {
-  submitting.value = true
-  try {
+    submitting.value = true;
+    try {
         // 將計算好的總天數賦值給表單
         form.value.leaveDay = totalLeaveDays.value;
         await LeaveApplicationService.submitLeaveApplication(form.value);
@@ -130,7 +125,7 @@ const submitLeave = async () => {
     } finally {
         submitting.value = false;
     }
-}
+};
 
 // 4. 新增：開啟和關閉 Dialog 的方法
 const openNewApplication = () => {
@@ -235,8 +230,6 @@ function deleteSelectedProducts() {
     selectedProducts.value = null;
     toast.add({ severity: 'success', summary: 'Successful', detail: 'Products Deleted', life: 3000 });
 }
-
- 
 </script>
 
 <template>
@@ -253,118 +246,69 @@ function deleteSelectedProducts() {
                 </template>
             </Toolbar>
 
-            <DataTable
-                ref="dt"
-                v-model:selection="selectedProducts"
-                :value="products"
-                dataKey="id"
-                :paginator="true"
-                :rows="10"
-                :filters="filters"
-                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                :rowsPerPageOptions="[5, 10, 25]"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
-            >
+            <DataTable :value="leaveList" :loading="loadingLeaveList" dataKey="id" :filters="filters" paginator :rows="10" :rowsPerPageOptions="[5, 10, 25]">
                 <template #header>
                     <div class="flex flex-wrap gap-2 items-center justify-between">
-                        <h4 class="m-0">Manage Products</h4>
+                        <h4 class="m-0">請假申請查詢列表</h4>
                         <IconField>
                             <InputIcon>
                                 <i class="pi pi-search" />
                             </InputIcon>
-                            <InputText v-model="filters['global'].value" placeholder="Search..." />
+                            <InputText v-model="filters['global'].value" placeholder="搜尋..." />
                         </IconField>
                     </div>
                 </template>
-
-                <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
-                <Column field="code" header="Code" sortable style="min-width: 12rem"></Column>
-                <Column field="name" header="Name" sortable style="min-width: 16rem"></Column>
-                <Column header="Image">
+                <Column field="applyDate" header="申請日期" sortable>
                     <template #body="slotProps">
-                        <img :src="`https://primefaces.org/cdn/primevue/images/product/${slotProps.data.image}`" :alt="slotProps.data.image" class="rounded" style="width: 64px" />
+                        {{ slotProps.data.applyDate }}
                     </template>
                 </Column>
-                <Column field="price" header="Price" sortable style="min-width: 8rem">
+                <Column field="leaveType" header="假別" sortable />
+                <Column field="description" header="說明" />
+                <Column field="leaveStart" header="開始日期" sortable>
                     <template #body="slotProps">
-                        {{ formatCurrency(slotProps.data.price) }}
+                        {{ slotProps.data.leaveStart }}
                     </template>
                 </Column>
-                <Column field="category" header="Category" sortable style="min-width: 10rem"></Column>
-                <Column field="rating" header="Reviews" sortable style="min-width: 12rem">
+                <Column field="leaveEnd" header="結束日期" sortable>
                     <template #body="slotProps">
-                        <Rating :modelValue="slotProps.data.rating" :readonly="true" />
+                        {{ slotProps.data.leaveEnd }}
                     </template>
                 </Column>
-                <!-- <Column field="inventoryStatus" header="Status" sortable style="min-width: 12rem">
-                    <template #body="slotProps">
-                        <Tag :value="slotProps.data.inventoryStatus" :severity="getStatusLabel(slotProps.data.inventoryStatus)" />
-                    </template>
-                </Column> -->
-                
-
-                <Column :exportable="false" style="min-width: 12rem">
-                    <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2" @click="editProduct(slotProps.data)" />
-                        <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteProduct(slotProps.data)" />
-                    </template>
-                </Column>
+                <Column field="leaveDay" header="天數" sortable />
+                <Column field="statusType" header="狀態" sortable />
             </DataTable>
         </div>
 
         <Dialog v-model:visible="applicationRequest" :style="{ width: '450px' }" header="請假申請" :modal="true">
-    <div class="flex flex-col gap-6 pt-4">
-        <div>
-            <label for="leaveTypeSelection" class="block font-bold mb-3">請假類型</label>
-            <Dropdown 
-                id="leaveTypeSelection" 
-                v-model="form.leaveTypeId" 
-                :options="leaveTypes" 
-                optionLabel="label" 
-                optionValue="value" 
-                placeholder="請選擇假別" 
-                :loading="loadingLeaveTypes" 
-                class="w-full" 
-            />
-        </div>
-        <div>
-            <label for="leaveStartDate" class="block font-bold mb-3">開始日期</label>
-            <DatePicker 
-                id="leaveStartDate" 
-                v-model="form.leaveStart" 
-                dateFormat="yy-mm-dd" 
-                :showIcon="true" 
-                :maxDate="form.leaveEnd" 
-                :manualInput="false" 
-                placeholder="請選擇日期" 
-                class="w-full" 
-            />
-        </div>
-        <div>
-            <label for="leaveEndDate" class="block font-bold mb-3">結束日期</label>
-            <DatePicker 
-                id="leaveEndDate" 
-                v-model="form.leaveEnd" 
-                dateFormat="yy-mm-dd" 
-                :showIcon="true" 
-                :minDate="form.leaveStart" 
-                :manualInput="false" 
-                placeholder="請選擇日期" 
-                class="w-full" 
-            />
-        </div>
-        <div class="col-span-6">
-            <label for="leaveDays" class="block font-bold mb-3">總請假天數</label>
+            <div class="flex flex-col gap-6 pt-4">
+                <div>
+                    <label for="leaveTypeSelection" class="block font-bold mb-3">請假類型</label>
+                    <Dropdown id="leaveTypeSelection" v-model="form.leaveTypeId" :options="leaveTypes" optionLabel="label" optionValue="value" placeholder="請選擇假別" :loading="loadingLeaveTypes" class="w-full" />
+                </div>
+                <div>
+                    <label for="description" class="block font-bold mb-3">請假事由</label>
+                    <Textarea id="description" v-model="form.description" rows="3" class="w-full" />
+                </div>
+                <div>
+                    <label for="leaveStartDate" class="block font-bold mb-3">開始日期</label>
+                    <DatePicker id="leaveStartDate" v-model="form.leaveStart" dateFormat="yy-mm-dd" :showIcon="true" :maxDate="form.leaveEnd" :manualInput="false" placeholder="請選擇日期" class="w-full" />
+                </div>
+                <div>
+                    <label for="leaveEndDate" class="block font-bold mb-3">結束日期</label>
+                    <DatePicker id="leaveEndDate" v-model="form.leaveEnd" dateFormat="yy-mm-dd" :showIcon="true" :minDate="form.leaveStart" :manualInput="false" placeholder="請選擇日期" class="w-full" />
+                </div>
+                <div class="col-span-6">
+                    <label for="leaveDays" class="block font-bold mb-3">總請假天數</label>
+                    <InputText :value="totalLeaveDays" disabled class="w-full" />
+                </div>
+            </div>
 
-            <InputText :value="totalLeaveDays" disabled class="w-full" />
-        </div>
-    </div>
-
-    <template #footer>
-        <Button label="取消" icon="pi pi-times" text @click="hideDialog" />
-        <Button label="送出" icon="pi pi-check" @click="submitLeave" :loading="submitting" />
-    </template>
-</Dialog>
+            <template #footer>
+                <Button label="取消" icon="pi pi-times" text @click="hideDialog" />
+                <Button label="送出" icon="pi pi-check" @click="submitLeave" :loading="submitting" />
+            </template>
+        </Dialog>
 
         <Dialog v-model:visible="deleteProductDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
             <div class="flex items-center gap-4">

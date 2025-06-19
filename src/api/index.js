@@ -1,13 +1,12 @@
 import ApiRequest from '@/utilities/ApiRequest';
 
-
 const apiPath = {
     login: '/api/login',
     logout: '/api/logout',
     userInfo: '/api/user',
     getAllLeaveType: '/api/leaveapplications/getallleavetype',
-    applyLeaveApplication:'/api/leaveapplications/applyingleaveapplication'
-
+    applyLeaveApplication: '/api/leaveapplications/applyingleaveapplication',
+    getLeaveSummary: '/api/leaveapplications/summary'
 
     // 其他 API 例如
     // getProfile: '/api/profile',
@@ -31,15 +30,15 @@ export function userInfo() {
 export function logout() {
     return ApiRequest.httpPost(apiPath.logout);
 }
-
-export function getAllLeaveType(){
+//(GET)"請假類別"
+export function getAllLeaveType() {
     return ApiRequest.httpGet(apiPath.getAllLeaveType);
-};
-
+}
+//(POST)請假申請
 export function applyLeaveApplication(data) {
     return ApiRequest.httpPost(apiPath.applyLeaveApplication, data);
 }
-
-
-
-
+//(GET)請假紀錄
+export function getLeaveSummary() {
+    return ApiRequest.httpGet(apiPath.getLeaveSummary);
+}

@@ -1,4 +1,4 @@
-import { applyLeaveApplication, getAllLeaveType } from '@/api/index';
+import { applyLeaveApplication, getAllLeaveType, getLeaveSummary } from '@/api/index';
 
 export const LeaveApplicationService = {
     async getLeaveTypes() {
@@ -13,7 +13,15 @@ export const LeaveApplicationService = {
         else throw new Error(res.errMsg || '申請失敗');
     },
 
-    
+    async getLeaveSummary() {
+        // const res = await getLeaveSummary();
+        // if (res.success) return res.body;
+        // else throw new Error(res.errMsg || '取得請假申請紀錄失敗');
+        const res = await getLeaveSummary();
+        console.log('leave summary api 回傳：', res);
+        if (res.success) return res.body;
+        else throw new Error(res.errMsg || '取得請假申請紀錄失敗');
+    }
 
 
 };
