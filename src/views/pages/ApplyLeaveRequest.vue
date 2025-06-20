@@ -7,20 +7,11 @@ import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 
-onMounted(async () => {
-    ProductService.getProducts().then((data) => (products.value = data));
-    //載入員工的請假申請列表
-    leaveList.value = await LeaveApplicationService.getLeaveSummary();
-});
-
 const toast = useToast();
 const dt = ref();
-const products = ref();
 const applicationRequest = ref(false);
 const deleteProductDialog = ref(false);
 const deleteProductsDialog = ref(false);
-const product = ref({});
-const selectedProducts = ref();
 const filters = ref({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
@@ -28,15 +19,37 @@ const leaveTypes = ref([]);
 const loadingLeaveTypes = ref(false);
 const submitting = ref(false);
 const leaveList = ref([]);
+const loadingLeaveList = ref(true);
+
+const fetchLeaveList = async () => {
+    try {
+        const summaryData = await LeaveApplicationService.getLeaveSummary();
+        leaveList.value = summaryData;
+    } catch (error) {
+        // ✅ Service 中拋出的 Error 會在這裡被捕捉到，error.message 就是您定義的 errMsg。
+        toast.add({
+            severity: 'error',
+            summary: '錯誤',
+            detail: error.message,
+            life: 3000
+        });
+        console.error('載入請假紀錄失敗:', error);
+    } finally {
+        loadingLeaveList.value = false;
+    }
+};
+
+onMounted(async () => {
+    //載入員工的請假申請列表
+    fetchLeaveList();
+});
 
 // 表單資料
 const form = ref({
     leaveTypeId: null,
     description: null,
-    leaveDay: 0,
-    leaveStart: null,
-    leaveEnd: null,
-    statusId: 3
+    startDate: null,
+    endDate: null
 });
 const submitted = ref(false);
 
@@ -48,8 +61,8 @@ watch(applicationRequest, (newValue) => {
 });
 
 const totalLeaveDays = computed(() => {
-    const start = form.value.leaveStart;
-    const end = form.value.leaveEnd;
+    const start = form.value.startDate;
+    const end = form.value.endDate;
 
     // 偵錯日誌 (1)：看看傳入的原始日期是什麼
     console.log('--- 計算開始 ---');
@@ -66,10 +79,10 @@ const totalLeaveDays = computed(() => {
     }
 
     let count = 0;
-    const current = new Date(form.value.leaveStart);
+    const current = new Date(form.value.startDate);
     current.setHours(0, 0, 0, 0);
 
-    const endDate = new Date(form.value.leaveEnd);
+    const endDate = new Date(form.value.endDate);
     endDate.setHours(0, 0, 0, 0);
 
     // --- 確保您的迴圈是這個版本 ---
@@ -111,12 +124,32 @@ const fetchLeaveTypes = async () => {
 };
 
 const submitLeave = async () => {
+    // 步驟一：前端驗證 (來自我的建議)
+    // 確保所有必填欄位都有值，才能繼續往下走
+    if (!form.value.leaveTypeId || !form.value.startDate || !form.value.endDate) {
+        toast.add({
+            severity: 'warn',
+            summary: '提醒',
+            detail: '請假類型、開始和結束日期為必填欄位',
+            life: 3000
+        });
+        return; // 中斷執行
+    }
+
     submitting.value = true;
     try {
-        // 將計算好的總天數賦值給表單
-        form.value.leaveDay = totalLeaveDays.value;
-        await LeaveApplicationService.submitLeaveApplication(form.value);
+        // 步驟二：資料轉換 (使用您的 formatDate 函式)
+        // 因為已經通過了驗證，所以這裡的 form.value.startDate 和 endDate 一定是有效的 Date 物件
+        const transferedForm = {
+            leaveTypeId: form.value.leaveTypeId,
+            description: form.value.description,
+            startDate: formatDate(form.value.startDate), // ✅ 使用您的函式，清晰又安全
+            endDate: formatDate(form.value.endDate) // ✅ 使用您的函式
+        };
+        console.log(JSON.stringify(transferedForm));
+        await LeaveApplicationService.submitLeaveApplication(transferedForm);
         toast.add({ severity: 'success', summary: '成功', detail: '請假申請已送出', life: 3000 });
+        fetchLeaveList();
         hideDialog(); // 成功後關閉 Dialog
         // 可以在此刷新主列表資料
     } catch (err) {
@@ -132,18 +165,12 @@ const openNewApplication = () => {
     // 重置表單
     form.value = {
         leaveTypeId: null,
-        leaveStart: null,
-        leaveEnd: null,
-        leaveDay: 0,
-        statusId: 3
+        startDate: null,
+        endDate: null,
+        description: null
     };
     applicationRequest.value = true;
 };
-
-function formatCurrency(value) {
-    if (value) return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    return;
-}
 
 function openNew() {
     product.value = {};
@@ -155,81 +182,6 @@ function hideDialog() {
     applicationRequest.value = false;
     submitted.value = false;
 }
-
-function saveProduct() {
-    submitted.value = true;
-
-    if (product?.value.name?.trim()) {
-        if (product.value.id) {
-            product.value.inventoryStatus = product.value.inventoryStatus.value ? product.value.inventoryStatus.value : product.value.inventoryStatus;
-            products.value[findIndexById(product.value.id)] = product.value;
-            toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
-        } else {
-            product.value.id = createId();
-            product.value.code = createId();
-            product.value.image = 'product-placeholder.svg';
-            product.value.inventoryStatus = product.value.inventoryStatus ? product.value.inventoryStatus.value : 'INSTOCK';
-            products.value.push(product.value);
-            toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
-        }
-
-        applicationRequest.value = false;
-        product.value = {};
-    }
-}
-
-function editProduct(prod) {
-    product.value = { ...prod };
-    applicationRequest.value = true;
-}
-
-function confirmDeleteProduct(prod) {
-    product.value = prod;
-    deleteProductDialog.value = true;
-}
-
-function deleteProduct() {
-    products.value = products.value.filter((val) => val.id !== product.value.id);
-    deleteProductDialog.value = false;
-    product.value = {};
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Deleted', life: 3000 });
-}
-
-function findIndexById(id) {
-    let index = -1;
-    for (let i = 0; i < products.value.length; i++) {
-        if (products.value[i].id === id) {
-            index = i;
-            break;
-        }
-    }
-
-    return index;
-}
-
-function createId() {
-    let id = '';
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (var i = 0; i < 5; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return id;
-}
-
-function exportCSV() {
-    dt.value.exportCSV();
-}
-
-function confirmDeleteSelected() {
-    deleteProductsDialog.value = true;
-}
-
-function deleteSelectedProducts() {
-    products.value = products.value.filter((val) => !selectedProducts.value.includes(val));
-    deleteProductsDialog.value = false;
-    selectedProducts.value = null;
-    toast.add({ severity: 'success', summary: 'Successful', detail: 'Products Deleted', life: 3000 });
-}
 </script>
 
 <template>
@@ -239,10 +191,6 @@ function deleteSelectedProducts() {
                 <template #start>
                     <Button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" @click="openNewApplication" />
                     <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" />
-                </template>
-
-                <template #end>
-                    <Button label="Export" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
                 </template>
             </Toolbar>
 
@@ -265,12 +213,12 @@ function deleteSelectedProducts() {
                 </Column>
                 <Column field="leaveType" header="假別" sortable />
                 <Column field="description" header="說明" />
-                <Column field="leaveStart" header="開始日期" sortable>
+                <Column field="startDate" header="開始日期" sortable>
                     <template #body="slotProps">
                         {{ slotProps.data.leaveStart }}
                     </template>
                 </Column>
-                <Column field="leaveEnd" header="結束日期" sortable>
+                <Column field="endDate" header="結束日期" sortable>
                     <template #body="slotProps">
                         {{ slotProps.data.leaveEnd }}
                     </template>
@@ -292,11 +240,11 @@ function deleteSelectedProducts() {
                 </div>
                 <div>
                     <label for="leaveStartDate" class="block font-bold mb-3">開始日期</label>
-                    <DatePicker id="leaveStartDate" v-model="form.leaveStart" dateFormat="yy-mm-dd" :showIcon="true" :maxDate="form.leaveEnd" :manualInput="false" placeholder="請選擇日期" class="w-full" />
+                    <DatePicker id="leaveStartDate" v-model="form.startDate" dateFormat="yy-mm-dd" :showIcon="true" :maxDate="form.endDate" :manualInput="false" placeholder="請選擇日期" class="w-full" />
                 </div>
                 <div>
                     <label for="leaveEndDate" class="block font-bold mb-3">結束日期</label>
-                    <DatePicker id="leaveEndDate" v-model="form.leaveEnd" dateFormat="yy-mm-dd" :showIcon="true" :minDate="form.leaveStart" :manualInput="false" placeholder="請選擇日期" class="w-full" />
+                    <DatePicker id="leaveEndDate" v-model="form.endDate" dateFormat="yy-mm-dd" :showIcon="true" :minDate="form.startDate" :manualInput="false" placeholder="請選擇日期" class="w-full" />
                 </div>
                 <div class="col-span-6">
                     <label for="leaveDays" class="block font-bold mb-3">總請假天數</label>
