@@ -1,7 +1,6 @@
 <script setup>
 import { extraWorkDays, publicHolidays } from '@/data/Holidays';
 import { LeaveApplicationService } from '@/service/LeaveApplicationService';
-import { ProductService } from '@/service/ProductService';
 import { formatDate } from '@/utilities/LeaveDayHelper';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
@@ -10,8 +9,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 const toast = useToast();
 const dt = ref();
 const applicationRequest = ref(false);
-const deleteProductDialog = ref(false);
-const deleteProductsDialog = ref(false);
 const filters = ref({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
@@ -173,7 +170,6 @@ const openNewApplication = () => {
 };
 
 function openNew() {
-    product.value = {};
     submitted.value = false;
     applicationRequest.value = true;
 }
@@ -190,7 +186,6 @@ function hideDialog() {
             <Toolbar class="mb-6">
                 <template #start>
                     <Button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" @click="openNewApplication" />
-                    <Button label="Delete" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" />
                 </template>
             </Toolbar>
 
@@ -255,31 +250,6 @@ function hideDialog() {
             <template #footer>
                 <Button label="取消" icon="pi pi-times" text @click="hideDialog" />
                 <Button label="送出" icon="pi pi-check" @click="submitLeave" :loading="submitting" />
-            </template>
-        </Dialog>
-
-        <Dialog v-model:visible="deleteProductDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
-            <div class="flex items-center gap-4">
-                <i class="pi pi-exclamation-triangle !text-3xl" />
-                <span v-if="product"
-                    >Are you sure you want to delete <b>{{ product.name }}</b
-                    >?</span
-                >
-            </div>
-            <template #footer>
-                <Button label="No" icon="pi pi-times" text @click="deleteProductDialog = false" />
-                <Button label="Yes" icon="pi pi-check" @click="deleteProduct" />
-            </template>
-        </Dialog>
-
-        <Dialog v-model:visible="deleteProductsDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
-            <div class="flex items-center gap-4">
-                <i class="pi pi-exclamation-triangle !text-3xl" />
-                <span v-if="product">Are you sure you want to delete the selected products?</span>
-            </div>
-            <template #footer>
-                <Button label="No" icon="pi pi-times" text @click="deleteProductsDialog = false" />
-                <Button label="Yes" icon="pi pi-check" text @click="deleteSelectedProducts" />
             </template>
         </Dialog>
     </div>

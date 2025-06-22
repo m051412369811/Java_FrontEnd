@@ -70,6 +70,11 @@ const model = ref([
                 to: '/pages/leaverequest'
             },
             {
+                label: '請假審核',
+                icon: 'pi pi-fw pi-pencil',
+                to: '/pages/leaveapproval'
+            },
+            {
                 label: 'Not Found',
                 icon: 'pi pi-fw pi-exclamation-circle',
                 to: '/pages/notfound'

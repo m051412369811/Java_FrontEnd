@@ -6,8 +6,8 @@ const apiPath = {
     userInfo: '/api/user',
     getAllLeaveType: '/api/leaveapplications/getallleavetype',
     applyLeaveApplication: '/api/leaveapplications/applyingleaveapplication',
-    getLeaveSummary: '/api/leaveapplications/summary'
-
+    getLeaveSummary: '/api/leaveapplications/summary',
+    getPendingApprovals: '/api/approvals/pending'
     // 其他 API 例如
     // getProfile: '/api/profile',
     // updatePassword: '/api/updatePassword'
@@ -41,4 +41,16 @@ export function applyLeaveApplication(data) {
 //(GET)請假紀錄
 export function getLeaveSummary() {
     return ApiRequest.httpGet(apiPath.getLeaveSummary);
+}
+//(GET)請假准許列表
+export function getPendingApprovals() {
+    return ApiRequest.httpGet(apiPath.getPendingApprovals);
+}
+
+//(POST)請假審核
+export function submitApprovalAction(stepId, action, comments) {
+    // 動態組合 URL，例如: /api/approvals/101/approve
+    const url = `/api/approvals/${stepId}/${action}`;
+    const payload = { comments };
+    return ApiRequest.httpPost(url, payload);
 }
