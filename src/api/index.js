@@ -7,7 +7,11 @@ const apiPath = {
     getAllLeaveType: '/api/leaveapplications/getallleavetype',
     applyLeaveApplication: '/api/leaveapplications/applyingleaveapplication',
     getLeaveSummary: '/api/leaveapplications/summary',
-    getPendingApprovals: '/api/approvals/pending'
+    getPendingApprovals: '/api/approvals/pending',
+    employees: '/api/employees',
+    departmentOptions: '/api/options/departments',
+    titleOptions: '/api/options/titles',
+    managerOptions: '/api/options/managers'
     // 其他 API 例如
     // getProfile: '/api/profile',
     // updatePassword: '/api/updatePassword'
@@ -53,4 +57,33 @@ export function submitApprovalAction(stepId, action, comments) {
     const url = `/api/approvals/${stepId}/${action}`;
     const payload = { comments };
     return ApiRequest.httpPost(url, payload);
+}
+
+export function getEmployees(departmentId) {
+    const params = departmentId ? { departmentId } : {};
+    return ApiRequest.httpGet(apiPath.employees, { params });
+}
+
+export function createEmployee(employeeData) {
+    return ApiRequest.httpPost(apiPath.employees, employeeData);
+}
+
+export function updateEmployee(employeeId, employeeData) {
+    return ApiRequest.httpPut(`${apiPath.employees}/${employeeId}`, employeeData);
+}
+
+export function getDepartmentOptions() {
+    return ApiRequest.httpGet(apiPath.departmentOptions);
+}
+
+export function getTitleOptions() {
+    return ApiRequest.httpGet(apiPath.titleOptions);
+}
+
+export function getManagerOptions() {
+    return ApiRequest.httpGet(apiPath.managerOptions);
+}
+
+export function getEmployee(id) {
+    return ApiRequest.httpGet(`${apiPath.employees}/${id}`);
 }

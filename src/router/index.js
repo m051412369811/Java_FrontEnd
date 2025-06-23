@@ -96,9 +96,9 @@ const router = createRouter({
                     component: () => import('@/views/pages/Empty.vue')
                 },
                 {
-                    path: '/pages/crud',
-                    name: 'crud',
-                    component: () => import('@/views/pages/Crud.vue')
+                    path: '/pages/employeemanagement',
+                    name: 'employeemanagement',
+                    component: () => import('@/views/pages/EmployeeManagement.vue')
                 },
                 {
                     path: '/pages/leaverequest',

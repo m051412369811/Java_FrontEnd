@@ -65,6 +65,11 @@ const model = ref([
                 to: '/pages/crud'
             },
             {
+                label: '員工列表',
+                icon: 'pi pi-fw pi-pencil',
+                to: '/pages/employeemanagement'
+            },
+            {
                 label: '請假申請/查詢',
                 icon: 'pi pi-fw pi-pencil',
                 to: '/pages/leaverequest'

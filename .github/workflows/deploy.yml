@@ -1,0 +1,56 @@
+# .github/workflows/deploy.yml
+
+# 工作流程的名稱
+name: Deploy Vue App to GitHub Pages
+
+# 觸發條件：當推送到 main 分支時觸發
+on:
+  push:
+    branches: ["main"]
+
+# 設定工作流程的權限，允許它部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 定義工作 (Jobs)
+jobs:
+  # 定義一個名為 'build' 的工作
+  build:
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 虛擬環境
+    steps:
+      - name: Checkout # 步驟一：取得程式碼
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js # 步驟二：設定 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 使用 Node.js 20 版
+          cache: 'npm' # 快取 npm 的依賴項以加速後續建置
+
+      - name: Install dependencies # 步驟三：安裝專案依賴
+        run: npm install
+
+      - name: Build # 步驟四：建置專案 (Vite 會使用我們設定的 base 路徑)
+        run: npm run build
+
+      - name: Setup Pages # 步驟五：設定 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact # 步驟六：上傳建置好的產物 (dist 資料夾)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist' # 指定要上傳的資料夾
+
+  # 定義一個名為 'deploy' 的工作
+  deploy:
+    needs: build # 這個工作依賴於 'build' 工作，必須在 build 成功後才執行
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }} # 將部署後的網址設定為環境變數
+    steps:
+      - name: Deploy to GitHub Pages # 步驟一：部署
+        id: deployment
+        uses: actions/deploy-pages@v4 # 使用官方的部署動作
