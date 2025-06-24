@@ -1,9 +1,9 @@
 import { userInfo } from '@/api';
 import AppLayout from '@/layout/AppLayout.vue';
-import { createRouter, createWebHasHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 const router = createRouter({
-    history: createWebHasHistory(),
+    history: createWebHashHistory(),
     routes: [
         {
             path: '/',
