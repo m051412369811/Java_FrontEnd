@@ -32,7 +32,10 @@ jobs:
       - name: Install dependencies # 步驟三：安裝專案依賴
         run: npm install
 
-      - name: Build # 步驟四：建置專案 (Vite 會使用我們設定的 base 路徑)
+      - name: Build production-ready files # 步驟四：建置專案 (Vite 會使用我們設定的 base 路徑)
+        env:
+          # 將 GitHub Secret 的值，注入到這個步驟的環境變數中
+          VITE_API_HOST: ${{ secrets.VITE_API_HOST }}
         run: npm run build
 
       - name: Setup Pages # 步驟五：設定 GitHub Pages
