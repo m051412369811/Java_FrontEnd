@@ -1,7 +1,7 @@
 // session-based login 不用管 token header，只要 withCredentials: true
 import axios from 'axios';
 
-// 可根據環境變數調整 API 位置
+// 可根據環境變數調整 API 位置，雲端的環境變數也要記得新增
 const API_BASE_URL = import.meta.env.VITE_API_HOST || 'http://localhost:8080';
 
 // 攔截器也不用加 token，錯誤攔截可保留
