@@ -32,8 +32,18 @@ const roleOptions = ref([
 // --- 生命週期與監聽 ---
 
 onMounted(() => {
-    // 頁面一載入，就去獲取部門列表，用於篩選
-    fetchDepartmentOptions();
+    // ✅ 在頁面載入時，一次性地、並行地獲取所有需要的下拉選單資料
+    isLoading.value = true; // 可以用一個總的 loading 狀態
+    try {
+        Promise.all([
+            fetchDepartmentOptions(), // 獲取部門列表 (for 篩選器)
+            fetchDialogOptions() // 獲取職稱和主管列表 (for Dialog)
+        ]);
+    } catch (error) {
+        // 統一的錯誤處理
+    } finally {
+        isLoading.value = false;
+    }
 });
 
 // 監聽 selectedDepartment 的變化，一旦使用者選擇了新部門，就重新載入員工列表
@@ -82,18 +92,8 @@ async function fetchDepartmentOptions() {
 async function openNewDialog() {
     dialogMode.value = 'new';
     employeeForm.value = { role: 'EMPLOYEE', hireDate: new Date() }; // 提供預設值
-    await fetchDialogOptions();
     dialogVisible.value = true;
 }
-
-// // 開啟「編輯員工」的 Dialog
-// async function openEditDialog(employee) {
-//     // 將來您可以擴充此功能，例如先 call API 獲取更詳細的員工資料
-//     dialogMode.value = 'edit';
-//     employeeForm.value = { ...employee }; // 簡化處理，直接複製列表資料
-//     await fetchDialogOptions();
-//     dialogVisible.value = true;
-// }
 
 // 儲存（新增或修改）
 async function saveEmployee() {
@@ -150,9 +150,6 @@ async function openEditDialog(employeeSummary) {
             ...detailedData
         };
 
-        // 載入 Dialog 中需要的下拉選單選項
-        await fetchDialogOptions();
-
         // ---【第三步：打開 Dialog】---
         dialogVisible.value = true;
     } catch (error) {
@@ -181,7 +178,10 @@ const dialogTitle = computed(() => (dialogMode.value === 'new' ? '新增員工' 
             <template #header>
                 <div class="text-xl font-bold">員工管理列表</div>
             </template>
-            <template #empty> 沒有找到員工資料 </template>
+            <template #empty>
+                <i class="pi pi-info-circle text-4xl mb-2"></i>
+                <p>沒有找到符合條件的員工。<br />您可以試著更換篩選條件，或點擊左上角「新增員工」。</p>
+            </template>
 
             <Column field="id" header="ID" sortable />
             <Column field="fullName" header="姓名" sortable />
@@ -196,38 +196,44 @@ const dialogTitle = computed(() => (dialogMode.value === 'new' ? '新增員工' 
         </DataTable>
     </div>
 
-    <Dialog v-model:visible="dialogVisible" :style="{ width: '450px' }" :header="dialogTitle" :modal="true" class="p-fluid">
+    <Dialog v-model:visible="dialogVisible" :style="{ width: '400px' }" :header="dialogTitle" :modal="true" class="p-fluid">
         <div class="field">
-            <label for="lastName">姓氏</label>
-            <InputText id="lastName" v-model.trim="employeeForm.lastName" required="true" />
+            <label for="lastName" class="block font-bold mb-1">姓氏</label>
+            <InputText fluid id="lastName" v-model.trim="employeeForm.lastName" required="true" :invalid="submitted && !employeeForm.lastName" />
+            <small v-if="submitted && !employeeForm.lastName" class="p-error">姓氏為必填欄位。</small>
         </div>
         <div class="field">
-            <label for="firstName">名字</label>
-            <InputText id="firstName" v-model.trim="employeeForm.firstName" required="true" />
+            <label for="firstName" class="block font-bold mb-1">名子</label>
+            <InputText fluid id="firstName" v-model.trim="employeeForm.firstName" required="true" :invalid="submitted && !employeeForm.firstName" />
+            <small v-if="submitted && !employeeForm.firstName" class="p-error">名子為必填欄位。</small>
         </div>
         <div class="field">
-            <label for="birthDate">生日 (將作為預設密碼)</label>
-            <Calendar id="birthDate" v-model="employeeForm.birthDate" dateFormat="yy-mm-dd" required="true" showIcon />
+            <label for="birthDate" class="block font-bold mb-1">生日</label>
+            <Calendar id="birthDate" v-model="employeeForm.birthDate" dateFormat="yy-mm-dd" required="true" :invalid="submitted && !employeeForm.birthDate" showIcon />
+            <small class="block mb-1 mt-1 text-gray-500">預設密碼將會是員工的生日 (格式為 YYYYMMDD)。</small>
+            <small v-if="submitted && !employeeForm.birthDate" class="p-error">生日為必填欄位。</small>
         </div>
         <div class="field">
-            <label for="hireDate">到職日</label>
+            <label for="hireDate" class="block font-bold mb-1">到職日</label>
             <Calendar id="hireDate" v-model="employeeForm.hireDate" dateFormat="yy-mm-dd" required="true" showIcon />
         </div>
         <div class="field">
-            <label for="department">部門</label>
-            <Dropdown id="department" v-model="employeeForm.departmentId" :options="departmentOptions" optionLabel="label" optionValue="value" placeholder="請選擇部門" required="true" />
+            <label for="department" class="block font-bold mb-1">部門</label>
+            <Dropdown fluid id="department" v-model="employeeForm.departmentId" :options="departmentOptions" optionLabel="label" optionValue="value" placeholder="請選擇部門" required="true" :invalid="submitted && !employeeForm.departmentId" />
+            <small v-if="submitted && !employeeForm.departmentId" class="p-error">部門為必填欄位。</small>
         </div>
         <div class="field">
-            <label for="title">職稱</label>
-            <Dropdown id="title" v-model="employeeForm.titleId" :options="titleOptions" optionLabel="label" optionValue="value" placeholder="請選擇職稱" required="true" />
+            <label for="title" class="block font-bold mb-1">職稱</label>
+            <Dropdown fluid id="title" v-model="employeeForm.titleId" :options="titleOptions" optionLabel="label" optionValue="value" placeholder="請選擇職稱" required="true" :invalid="submitted && !employeeForm.titleId" />
+            <small v-if="submitted && !employeeForm.titleId" class="p-error">職稱為必填欄位。</small>
         </div>
         <div class="field">
-            <label for="manager">直屬主管</label>
-            <Dropdown id="manager" v-model="employeeForm.managerId" :options="managerOptions" optionLabel="label" optionValue="value" placeholder="選擇主管 (可選)" :showClear="true" />
+            <label for="manager" class="block font-bold mb-1">直屬主管</label>
+            <Dropdown fluid id="manager" v-model="employeeForm.managerId" :options="managerOptions" optionLabel="label" optionValue="value" placeholder="選擇主管 (可選)" :showClear="true" />
         </div>
         <div class="field">
-            <label for="role">系統角色</label>
-            <Dropdown id="role" v-model="employeeForm.role" :options="roleOptions" optionLabel="label" optionValue="value" placeholder="請選擇角色" required="true" />
+            <label for="role" class="block font-bold mb-1">系統角色</label>
+            <Dropdown fluid id="role" v-model="employeeForm.role" :options="roleOptions" optionLabel="label" optionValue="value" placeholder="請選擇角色" required="true" />
         </div>
 
         <template #footer>
