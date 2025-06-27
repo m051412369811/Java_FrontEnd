@@ -33,15 +33,17 @@ export const EmployeeService = {
         if (res.success) return res.body;
         else throw new Error(res.errMsg || '獲取職稱選項失敗');
     },
-    async fetchManagerOptions() {
-        const res = await getManagerOptions();
-        if (res.success) return res.body;
-        else throw new Error(res.errMsg || '獲取主管選項失敗');
-    },
 
     async getEmployeeDetails(employeeId) {
         const res = await getEmployee(employeeId);
         if (res.success) return res.body;
         else throw new Error(res.errMsg || '獲取員工詳細資料失敗');
+    },
+
+    async fetchManagerOptions(departmentId, employeeId) {
+        // ✅ 增加參數
+        const res = await getManagerOptions(departmentId, employeeId); // ✅ 傳遞參數
+        if (res.success) return res.body;
+        else throw new Error(res.errMsg || '獲取主管選項失敗');
     }
 };

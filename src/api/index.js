@@ -80,10 +80,12 @@ export function getTitleOptions() {
     return ApiRequest.httpGet(apiPath.titleOptions);
 }
 
-export function getManagerOptions() {
-    return ApiRequest.httpGet(apiPath.managerOptions);
-}
-
 export function getEmployee(id) {
     return ApiRequest.httpGet(`${apiPath.employees}/${id}`);
+}
+
+export function getManagerOptions(departmentId, employeeId) {
+    // ✅ 增加參數
+    const params = { departmentId, employeeId };
+    return ApiRequest.httpGet(apiPath.managerOptions, { params });
 }
