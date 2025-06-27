@@ -1,21 +1,23 @@
 <script setup>
 import { login } from '@/api/index'; // ← 這是你集中管理API的檔案
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import { setSession } from '@/store/session';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const empId = ref('');         // 假設用 email/員工編號登入，自行選用
+const empId = ref(''); // 假設用 email/員工編號登入，自行選用
 const password = ref('');
-const checked = ref(false);    // "Remember me" 暫時沒用，先保留
-const errMsg = ref('');        // 顯示錯誤訊息
+const checked = ref(false); // "Remember me" 暫時沒用，先保留
+const errMsg = ref(''); // 顯示錯誤訊息
 
 async function handleLogIn() {
     errMsg.value = '';
     try {
         const res = await login(empId.value, password.value);
         if (res.success) {
-            router.push('/dashboard');   // 登入成功，導回首頁或你指定的主畫面
+            setSession(res.body);
+            router.push('/dashboard'); // 登入成功，導回首頁或你指定的主畫面
         } else {
             errMsg.value = res.errMsg || '登入失敗，請確認帳號密碼';
         }
@@ -49,26 +51,26 @@ async function handleLogIn() {
                                 />
                             </g>
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Welcome to PrimeLand!</div>
-                        <span class="text-muted-color font-medium">Sign in to continue</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">黃氏企業歡迎您！</div>
+                        <span class="text-muted-color font-medium">請先登入</span>
                     </div>
 
                     <div>
-                        <label for="empId" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
+                        <label for="empId" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">員工編號</label>
                         <InputText id="empId" type="text" placeholder="EmployeeID" class="w-full md:w-[30rem] mb-8" v-model="empId" />
 
-                        <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
+                        <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">密碼</label>
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
                         <div class="flex items-center justify-between mt-2 mb-8 gap-8">
                             <div class="flex items-center">
                                 <Checkbox v-model="checked" id="rememberme1" binary class="mr-2"></Checkbox>
-                                <label for="rememberme1">Remember me</label>
+                                <label for="rememberme1">記住我</label>
                             </div>
-                            <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
+                            <!-- <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span> -->
                         </div>
-                        <Button label="Sign In" class="w-full" @click="handleLogIn"></Button>
-                        <div v-if="errMsg" class="mt-4 text-red-500 text-center">{{ errMsg }}</div> 
+                        <Button label="登入" class="w-full" @click="handleLogIn"></Button>
+                        <div v-if="errMsg" class="mt-4 text-red-500 text-center">{{ errMsg }}</div>
                     </div>
                 </div>
             </div>
