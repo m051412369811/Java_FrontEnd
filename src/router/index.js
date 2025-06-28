@@ -1,5 +1,5 @@
-import { userInfo } from '@/api';
 import AppLayout from '@/layout/AppLayout.vue';
+import { initializeSession, sessionState } from '@/store/session';
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 const router = createRouter({
@@ -15,107 +15,28 @@ const router = createRouter({
                     component: () => import('@/views/Dashboard.vue')
                 },
                 {
-                    path: '/uikit/formlayout',
-                    name: 'ormlayout',
-                    component: () => import('@/views/uikit/FormLayout.vue')
-                },
-                {
-                    path: '/uikit/input',
-                    name: 'input',
-                    component: () => import('@/views/uikit/InputDoc.vue')
-                },
-                {
-                    path: '/uikit/button',
-                    name: 'button',
-                    component: () => import('@/views/uikit/ButtonDoc.vue')
-                },
-                {
-                    path: '/uikit/table',
-                    name: 'table',
-                    component: () => import('@/views/uikit/TableDoc.vue')
-                },
-                {
-                    path: '/uikit/list',
-                    name: 'list',
-                    component: () => import('@/views/uikit/ListDoc.vue')
-                },
-                {
-                    path: '/uikit/tree',
-                    name: 'tree',
-                    component: () => import('@/views/uikit/TreeDoc.vue')
-                },
-                {
-                    path: '/uikit/panel',
-                    name: 'panel',
-                    component: () => import('@/views/uikit/PanelsDoc.vue')
-                },
-
-                {
-                    path: '/uikit/overlay',
-                    name: 'overlay',
-                    component: () => import('@/views/uikit/OverlayDoc.vue')
-                },
-                {
-                    path: '/uikit/media',
-                    name: 'media',
-                    component: () => import('@/views/uikit/MediaDoc.vue')
-                },
-                {
-                    path: '/uikit/message',
-                    name: 'message',
-                    component: () => import('@/views/uikit/MessagesDoc.vue')
-                },
-                {
-                    path: '/uikit/file',
-                    name: 'file',
-                    component: () => import('@/views/uikit/FileDoc.vue')
-                },
-                {
-                    path: '/uikit/menu',
-                    name: 'menu',
-                    component: () => import('@/views/uikit/MenuDoc.vue')
-                },
-                {
-                    path: '/uikit/charts',
-                    name: 'charts',
-                    component: () => import('@/views/uikit/ChartDoc.vue')
-                },
-                {
-                    path: '/uikit/misc',
-                    name: 'misc',
-                    component: () => import('@/views/uikit/MiscDoc.vue')
-                },
-                {
-                    path: '/uikit/timeline',
-                    name: 'timeline',
-                    component: () => import('@/views/uikit/TimelineDoc.vue')
-                },
-                {
-                    path: '/pages/empty',
-                    name: 'empty',
-                    component: () => import('@/views/pages/Empty.vue')
-                },
-                {
                     path: '/pages/employeemanagement',
-                    name: 'employeemanagement',
-                    component: () => import('@/views/pages/EmployeeManagement.vue')
+                    name: '員工列表',
+                    component: () => import('@/views/pages/EmployeeManagement.vue'),
+                    meta: { roles: ['HR', 'ADMIN'] }
                 },
                 {
                     path: '/pages/leaverequest',
-                    name: 'leaverequest',
+                    name: '請假申請/紀錄',
                     component: () => import('@/views/pages/ApplyLeaveRequest.vue')
                 },
                 {
                     path: '/pages/leaveapproval',
-                    name: 'leaveapproval',
-                    component: () => import('@/views/pages/LeaveApproval.vue')
-                },
-                {
-                    path: '/documentation',
-                    name: 'documentation',
-                    component: () => import('@/views/pages/Documentation.vue')
+                    name: '請假審核',
+                    component: () => import('@/views/pages/LeaveApproval.vue'),
+                    meta: { roles: ['MANAGER', 'ADMIN'] }
                 }
             ]
+        },
+        {
+            path: '/pages/empty',
+            name: 'empty',
+            component: () => import('@/views/pages/Empty.vue')
         },
         {
             path: '/landing',
@@ -148,22 +69,35 @@ const router = createRouter({
 
 // 全局前置守衛
 router.beforeEach(async (to, from, next) => {
-    const publicPages = ['/auth/login', '/auth/error', '/auth/access', '/pages/notfound'];
-    const authRequired = !publicPages.includes(to.path);
-
-    if (!authRequired) {
-        return next();
+    // 1. 確保 Session 狀態已經從後端初始化
+    // 這一步解決了「重新整理頁面」後，sessionState 還沒拿到資料的問題
+    if (!sessionState.isInitialized) {
+        await initializeSession();
     }
 
-    try {
-        const res = await userInfo();
-        if (res.success) {
-            next();
-        } else {
-            next({ name: 'login' });
-        }
-    } catch (e) {
-        next({ name: 'login' });
+    // 2. 檢查目標路由是否需要權限 (檢查路由是否有 meta.roles)
+    const requiredRoles = to.meta.roles;
+
+    // 3. 如果路由不需要權限，直接放行
+    if (!requiredRoles || requiredRoles.length === 0) {
+        next();
+        return;
+    }
+
+    // 4. 如果路由需要權限，但使用者尚未登入，導向登入頁
+    if (!sessionState.isLoggedIn) {
+        // 儲存使用者想去的頁面，登入後可以導向回去
+        next({ name: 'login', query: { redirect: to.fullPath } });
+        return;
+    }
+
+    // 5. 檢查使用者是否擁有至少一個所需角色
+    const hasPermission = sessionState.roles.some((userRole) => requiredRoles.includes(userRole));
+    if (hasPermission) {
+        next(); // 有權限，放行
+    } else {
+        // 有登入，但沒有權限，導向「權限不足」頁面
+        next({ name: 'access-denied' });
     }
 });
 

@@ -30,14 +30,17 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
                     </g>
                 </svg>
 
-                <span>SAKAI</span>
+                <span>員工/請假申請審核</span>
             </router-link>
         </div>
 
         <div class="layout-topbar-actions">
-            <OverlayBadge value="7">
-                <i class="pi pi-bell" style="font-size: 1.5rem" />
-            </OverlayBadge>
+            <button type="button" class="layout-topbar-action" value="7">
+                <OverlayBadge>
+                    <i class="pi pi-bell" style="font-size: 1.5rem" />
+                </OverlayBadge>
+            </button>
+
             <div class="layout-config-menu">
                 <button type="button" class="layout-topbar-action" @click="toggleDarkMode">
                     <i :class="['pi', { 'pi-moon': isDarkTheme, 'pi-sun': !isDarkTheme }]"></i>
