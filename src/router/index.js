@@ -8,6 +8,7 @@ const router = createRouter({
         {
             path: '/',
             component: AppLayout,
+            redirect: '/auth/login',
             children: [
                 {
                     path: '/dashboard',
